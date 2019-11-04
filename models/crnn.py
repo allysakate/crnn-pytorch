@@ -30,7 +30,7 @@ class CRNN(nn.Module):
             self.feature_extractor.layer3,
             self.feature_extractor.layer4
         )
-
+        #print(f'cnn: {self.cnn}')
         self.fully_conv = seq_proj[0] == 0
         if not self.fully_conv:
             self.proj = nn.Conv2d(seq_proj[0], seq_proj[1], kernel_size=1)
@@ -45,9 +45,13 @@ class CRNN(nn.Module):
         self.softmax = nn.Softmax(dim=2)
 
     def forward(self, x, decode=False):
+       #print(f'x: {x.size()}')
         hidden = self.init_hidden(x.size(0), next(self.parameters()).is_cuda)
+       #print(f'init_hid: {hidden.size()} | {x.size(0)} | {next(self.parameters())}')
         features = self.cnn(x)
+       #print(f'cnn: {features.size()}')
         features = self.features_to_sequence(features)
+       #print(f'feat_seq: {features.size()}')
         seq, hidden = self.rnn(features, hidden)
         seq = self.linear(seq)
         if not self.training:
@@ -66,14 +70,19 @@ class CRNN(nn.Module):
 
     def features_to_sequence(self, features):
         b, c, h, w = features.size()
+       #print(f'feat_size0: {features.size()}')
         assert h == 1, "the height of out must be 1"
         if not self.fully_conv:
             features = features.permute(0, 3, 2, 1)
+           #print(f'feat_size: {features.size()}')
             features = self.proj(features)
+           #print(f'seq_size: {features.size()}')
             features = features.permute(1, 0, 2, 3)
+           #print(f'seq_perm_size: {features.size()}')
         else:
             features = features.permute(3, 0, 2, 1)
         features = features.squeeze(2)
+       #print(f'seq_sq_size: {features.size()}')
         return features
 
     def get_block_size(self, layer):

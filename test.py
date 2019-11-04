@@ -2,7 +2,7 @@ import os
 import cv2
 import string
 from tqdm import tqdm
-import click
+import argparse
 import numpy as np
 
 import torch
@@ -18,14 +18,14 @@ from torchvision.transforms import Compose
 
 import editdistance
 
-def test(net, data, abc, cuda, visualize, batch_size=256):
+def test(net, data, abc, cuda, visualize, batch_size=4):
     data_loader = DataLoader(data, batch_size=batch_size, num_workers=4, shuffle=False, collate_fn=text_collate)
-
     count = 0
     tp = 0
     avg_ed = 0
     iterator = tqdm(data_loader)
     for sample in iterator:
+       #print(f'sample: {sample}')
         imgs = Variable(sample["img"])
         if cuda:
             imgs = imgs.cuda()
@@ -59,15 +59,19 @@ def test(net, data, abc, cuda, visualize, batch_size=256):
     avg_ed = avg_ed / count
     return acc, avg_ed
 
-@click.command()
-@click.option('--data-path', type=str, default=None, help='Path to dataset')
-@click.option('--abc', type=str, default=string.digits+string.ascii_uppercase, help='Alphabet')
-@click.option('--seq-proj', type=str, default="10x20", help='Projection of sequence')
-@click.option('--backend', type=str, default="resnet18", help='Backend network')
-@click.option('--snapshot', type=str, default=None, help='Pre-trained weights')
-@click.option('--input-size', type=str, default="320x32", help='Input size')
-@click.option('--gpu', type=str, default='0', help='List of GPUs for parallel training, e.g. 0,1,2,3')
-@click.option('--visualize', type=bool, default=False, help='Visualize output')
+parser = argparse.ArgumentParser()
+parser.add_argument('--data_path', type=str, default='/media/allysakatebrillantes/MyPassport/DATASET/catchall-dataset/cvat', help='Path to dataset')
+parser.add_argument('--abc', type=str, default='1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ#', help='Alphabet')
+parser.add_argument('--seq_proj', type=str, default="10x20", help='Projection of sequence')
+parser.add_argument('--backend', type=str, default="resnet18", help='Backend network')
+parser.add_argument('--snapshot', type=str, default=None, help='Pre-trained weights')
+parser.add_argument('--input_size', type=str, default="320x32", help='Input size')
+parser.add_argument('--gpu', type=str, default='0', help='List of GPUs for parallel training, e.g. 0,1,2,3')
+parser.add_argument('--visualize', type=bool, default=False, help='Visualize output')
+opt = parser.parse_args()
+print(opt)
+
+
 def main(data_path, abc, seq_proj, backend, snapshot, input_size, gpu, visualize):
     os.environ["CUDA_VISIBLE_DEVICES"] = gpu
     cuda = True if gpu is not '' else False
@@ -79,6 +83,7 @@ def main(data_path, abc, seq_proj, backend, snapshot, input_size, gpu, visualize
     ])
     if data_path is not None:
         data = TextDataset(data_path=data_path, mode="test", transform=transform)
+       #print(f'TextDataset {data[0]}')
     else:
         data = TestDataset(transform=transform, abc=abc)
     seq_proj = [int(x) for x in seq_proj.split('x')]
@@ -88,4 +93,4 @@ def main(data_path, abc, seq_proj, backend, snapshot, input_size, gpu, visualize
     print("Edit distance: {}".format(avg_ed))
 
 if __name__ == '__main__':
-    main()
+    main(opt.data_path, opt.abc, opt.seq_proj, opt.backend, opt.snapshot, opt.input_size, opt.gpu, opt.visualize)

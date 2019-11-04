@@ -19,6 +19,6 @@ def load_model(abc, seq_proj=[0, 0], backend='resnet18', snapshot=None, cuda=Tru
     net = nn.DataParallel(net)
     if snapshot is not None:
         load_weights(net, torch.load(snapshot))
-    if cuda:
-        net = net.cuda()
+    #if cuda:
+    #    net = net.cuda()
     return net
